@@ -184,7 +184,7 @@ def get_chemistry_values(stn_df, par_df, st_dt,
         engine:    Obj. Active NDB "engine" object
         
     Returns:
-        Dataframe
+        Tuple of dataframes (wc_df, dup_df)
     """   
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
@@ -300,7 +300,5 @@ def get_chemistry_values(stn_df, par_df, st_dt,
     df.index.name = ''
     df.columns = (list(df.columns.get_level_values(0)[:4]) + 
                   list(df.columns.get_level_values(1)[4:]))
-
-    print df.head()
     
     return (df, dup_df)
