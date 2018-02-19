@@ -1,0 +1,23 @@
+from setuptools import setup
+
+setup(name='ndbview',
+      version='0.1',
+      packages=['ndbview'],
+      author='James Sample',
+      author_email='james.e.sample@gmail.com',
+      url='https://github.com/JamesSample/ndbview/',
+      description='Flask end points for NDBView.',
+      long_description=open('README.md').read(),
+      classifiers=['Development Status :: 3 - Alpha',
+                   'License :: OSI Approved :: MIT License',
+                   'Intended Audience :: Developers',
+                   'Intended Audience :: Science/Research',
+                   'Operating System :: OS Independent',
+                   'Programming Language :: Python'],
+      include_package_data=True,
+      install_requires=['flask',
+		                'cx_Oracle',
+		                'sqlalchemy',
+		                'pandas',
+                        'openpyxl',
+                        'xlrd'])

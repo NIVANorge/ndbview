@@ -1,0 +1,1 @@
+from .ndbview import app
