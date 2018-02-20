@@ -198,7 +198,7 @@ def get_station_parameters():
     sel_stn_df = pd.DataFrame(sel_stn_json)
 
     # Get parameters
-    par_df = ndb_queries.get_station_parameters(sel_stn_df, engine)
+    par_df = ndb_queries.get_station_parameters2(sel_stn_df, engine)
     par_df = par_df[['parameter_id', 'parameter_name', 'unit']]
 
     # Reformat
@@ -240,9 +240,9 @@ def get_chemistry_values():
     lod_flags = sel_json['lod_flags']
 
     # Get chemistry values
-    wc_df, dup_df = ndb_queries.get_chemistry_values(stn_df, par_df,
-                                                     st_dt, end_dt,
-                                                     lod_flags, engine)
+    wc_df, dup_df = ndb_queries.get_chemistry_values2(stn_df, par_df,
+                                                      st_dt, end_dt,
+                                                      lod_flags, engine)
 
     # Reformat
     data = wc_df.to_dict(orient='records')
