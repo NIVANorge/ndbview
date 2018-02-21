@@ -387,10 +387,10 @@ def get_chemistry_values(stn_df, par_df, st_dt,
                                                            'entered_date']) 
 
     if len(dup_df) > 0:
-        print ('    WARNING\n    The database contains duplicated values for some station-'
-               'date-parameter combinations.\n    Only the most recent values '
+        print ('WARNING\nThe database contains duplicated values for some station-'
+               'date-parameter combinations.\nOnly the most recent values '
                'will be used, but you should check the repeated values are not '
-               'errors.\n    The duplicated entries are returned in a separate '
+               'errors.\nThe duplicated entries are returned in a separate '
                'dataframe.\n')
         
         # Choose most recent record for each duplicate
@@ -563,10 +563,10 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
                                                            'entered_date']) 
 
     if len(dup_df) > 0:
-        print ('    WARNING\n    The database contains duplicated values for some station-'
-               'date-parameter combinations.\n    Only the most recent values '
+        print ('WARNING\nThe database contains duplicated values for some station-'
+               'date-parameter combinations.\nOnly the most recent values '
                'will be used, but you should check the repeated values are not '
-               'errors.\n    The duplicated entries are returned in a separate '
+               'errors.\nThe duplicated entries are returned in a separate '
                'dataframe.\n')
 
         # Choose most recent record for each duplicate
