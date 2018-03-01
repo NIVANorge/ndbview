@@ -44,6 +44,8 @@ app.config.update(dict(
 
 def connect_ndb():
     """ Connects to the NIVADATABASE using a read-only user account.
+    
+        FOR DEVELOPMENT AND TESTING ONLY.
 
     Returns:
         SQLAlchemy engine object.
@@ -57,6 +59,8 @@ def connect_ndb():
 def get_engine():
     """ Opens a new database connection if one does not yet exist and adds it
         to the current application context.
+        
+        FOR DEVELOPMENT AND TESTING ONLY.
 
     Returns:
         SQLAlchemy engine object as part of app context.
@@ -69,59 +73,43 @@ def get_engine():
 # Routes/end points
 ###################
 
-@app.route('/', methods=['GET', 'POST'])
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    """ Toy log-in page from the Flask tutorial. Logs-in to the NIVADATABASE
-        using a read-only account.
-
-        NOT FOR PRODUCTION - DEVELOPMENT AND TESTING ONLY!
-    """
-    # Parse form data when submitted
-    error = None
-    if request.method == 'POST':
-        if request.form['username'] != app.config['USERNAME']:
-            error = 'Invalid username'
-        elif request.form['password'] != app.config['PASSWORD']:
-            error = 'Invalid password'
-        else:
-            session['logged_in'] = True
-            flash('You were logged in.')
-            return redirect(url_for('get_all_projects_stations'))
-
-    # Otherwise, return login page with error
-    return render_template('login.html', error=error)
-
-@app.route('/logout')
-def logout():
-    """ Toy log-out link from Flask tutorial. Closes database connection and
-        redirects to the log-in page.
-
-        NOT FOR PRODUCTION - DEVELOPMENT AND TESTING ONLY!
-    """
-    # Close db connection
-    if hasattr(g, 'ndb_engine'):
-        g.ndb_engine.close()
-
-    # Log out
-    session.pop('logged_in', None)
-    flash('You were logged out.')
-    
-    return redirect(url_for('login'))
-
-@app.route('/get_all_projects_stations', methods=['GET', 'POST'])
-def get_all_projects_stations():
-    """ Gets ALL projects and ALL stations from the NIVADATABASE.
-
-        Currently slow, so might need a bit of optimisation (e.g. a
-        materialised view?).
+@app.route('/get_all_stations')
+def get_all_stations():
+    """ Gets ALL stations from the NIVADATABASE.
 
     Returns:
-        Nested JSON: {'stations':station_data, 'projects':project_data}
+        JSON.
         
         For testing, can uncomment the alternative 'return' statement
-        in the code below to render two massive HTML tables instead of
-        raw JSON.        
+        in the code below to render an HTML table instead of raw JSON.       
+    """
+    # Get db engine for this session
+    engine = get_engine()
+
+    # Get stations
+    stn_df = ndb_queries.get_all_stations(engine)
+    stn_df = stn_df[['station_id', 'station_code', 'station_name',
+                     'longitude', 'latitude']]
+    stn_df.columns = ['id', 'c', 'n', 'x', 'y']
+
+    # Reformat
+    data = stn_df.to_dict(orient='records')
+    
+#    return render_template('show_projects_stations.html',
+#                           tables=[stn_df.to_html(), ],
+#                           titles=['Stations', ])
+
+    return jsonify(data)
+
+@app.route('/get_all_projects')
+def get_all_projects():
+    """ Gets ALL projects from the NIVADATABASE.
+
+    Returns:
+        JSON.
+        
+        For testing, can uncomment the alternative 'return' statement
+        in the code below to render an HTML table instead of raw JSON.        
     """
     # Get db engine for this session
     engine = get_engine()
@@ -129,35 +117,28 @@ def get_all_projects_stations():
     # Get projects
     proj_df = ndb_queries.get_all_projects(engine)
     proj_df = proj_df[['project_id', 'o_number', 'project_name']]
+    proj_df.columns = ['id', 'o', 'n']
 
-    # Get stations
-    stn_df = ndb_queries.get_all_stations(engine)
-    stn_df = stn_df[['station_id', 'station_code', 'station_name',
-                     'latitude', 'longitude']]
-
-    # Combine
-    data = {'stations':stn_df.to_dict(orient='records'),
-            'projects':proj_df.to_dict(orient='records')}
+    # Reformat
+    data = proj_df.to_dict(orient='records')
     
-    return render_template('show_projects_stations.html',
-                           tables=[proj_df.to_html(), stn_df.to_html()],
-                           titles=['Projects', 'Stations'])
+#    return render_template('show_projects_stations.html',
+#                           tables=[proj_df.to_html(), ],
+#                           titles=['Projects', ])
 
-#    return jsonify(data)
+    return jsonify(data)
 
 @app.route('/get_project_stations', methods=['POST',])
 def get_project_stations():
     """ Gets stations for the selected projects. Assumes data is POSTed
-        as a JSON list of project IDs e.g:
+        as a JSON array of integers names 'id':
 
-            [{"project_id":87},
-             {"project_id":88},
-             {"project_id":89}]
+            {"id":[87, 88, 89]}
 
     Returns:
         Stations table in JSON format
 
-    NOTE: Can test using the 'Postman' Chrome app (see chrome://apps/)
+    NOTE: Can test using 'Postman'
     """
     # Get db engine for this session
     engine = get_engine()
@@ -169,7 +150,8 @@ def get_project_stations():
     # Get stations
     stn_df = ndb_queries.get_project_stations(sel_proj_df, engine)
     stn_df = stn_df[['station_id', 'station_code', 'station_name',
-                     'latitude', 'longitude']]
+                     'longitude', 'latitude']]
+    stn_df.columns = ['id', 'c', 'n', 'x', 'y']
 
     # Reformat
     data = stn_df.to_dict(orient='records')
@@ -179,27 +161,30 @@ def get_project_stations():
 @app.route('/get_station_parameters', methods=['POST',])
 def get_station_parameters():
     """ Gets water chemistry parameters for the selected stations. Assumes
-        data is POSTed as a JSON list of station IDs e.g:
+        data is POSTed as a JSON in the following format:
 
-            [{"station_id":3561},
-             {"station_id":3562},
-             {"station_id":3563}]
+            {"st_dt":   "1990-01-01",
+             "end_dt":  "2010-12-31",
+             "id":[3561, 3562, 3563]}
 
     Returns:
         Parameters table in JSON format
 
-    NOTE: Can test using the 'Postman' Chrome app (see chrome://apps/)
+    NOTE: Can test using the 'Postman'
     """
     # Get db engine for this session
     engine = get_engine()
     
     # Parse posted data
     sel_stn_json = request.get_json()
-    sel_stn_df = pd.DataFrame(sel_stn_json)
+    st_dt = sel_stn_json['st_dt']
+    end_dt = sel_stn_json['end_dt']
+    sel_stn_df = pd.DataFrame({'id':sel_stn_json['id']})
 
     # Get parameters
-    par_df = ndb_queries.get_station_parameters2(sel_stn_df, engine)
+    par_df = ndb_queries.get_station_parameters2(sel_stn_df, st_dt, end_dt, engine)
     par_df = par_df[['parameter_id', 'parameter_name', 'unit']]
+    par_df.columns = ['id', 'n', 'u']
 
     # Reformat
     data = par_df.to_dict(orient='records')
@@ -212,32 +197,27 @@ def get_chemistry_values():
         date combinations. Assumes data is POSTed as nested JSON in the
         following format:
 
-            [{"start_date":"1990-01-01",
-              "end_date":  "2010-12-31",
-              "lod_flags":true,
-              "stations":  [{"station_id":3561},
-                            {"station_id":3562},
-                            {"station_id":3563}],
-              "parameters":[{"parameter_id":7},
-                            {"parameter_id":8},
-                            {"parameter_id":12},
-                            {"parameter_id":244}]}]    
+            {"st_dt": "1990-01-01",
+             "end_dt":"2010-12-31",
+             "lods":  true,
+             "stns":  [3561, 3562, 3563],
+             "pars":  [7, 8, 12, 244]}  
              
     Returns:
         Water chemistry table in JSON format
 
-    NOTE: Can test using the 'Postman' Chrome app (see chrome://apps/)
+    NOTE: Can test using the 'Postman'
     """
     # Get db engine for this session
     engine = get_engine()
     
     # Parse posted data
-    sel_json = request.get_json()[0]
-    stn_df = pd.DataFrame(sel_json['stations'])
-    par_df = pd.DataFrame(sel_json['parameters'])
-    st_dt = sel_json['start_date']
-    end_dt = sel_json['end_date']
-    lod_flags = sel_json['lod_flags']
+    sel_json = request.get_json()
+    stn_df = pd.DataFrame({'stns':sel_json['stns']})
+    par_df = pd.DataFrame({'pars':sel_json['pars']})
+    st_dt = sel_json['st_dt']
+    end_dt = sel_json['end_dt']
+    lod_flags = sel_json['lods']
 
     # Get chemistry values
     wc_df, dup_df = ndb_queries.get_chemistry_values2(stn_df, par_df,
