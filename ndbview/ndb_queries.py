@@ -648,7 +648,7 @@ def get_chemistry_values2(stn_df, par_df, st_dt, end_dt,
                                                            'entered_date']) 
 
     if len(dup_df) > 0:
-        print ('WARNING\nThe database contains unexpected duplicates values for '
+        print ('WARNING\nThe database contains unexpected duplicate values for '
                'some station-date-parameter combinations.\nOnly the most recent '
                'values will be used, but you should check the repeated values are '
                'not errors.\nThe duplicated entries are returned in a separate '
