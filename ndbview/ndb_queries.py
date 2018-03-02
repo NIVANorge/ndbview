@@ -24,14 +24,19 @@ def get_all_projects(engine):
         Dataframe
     """   
     # Query db
-    sql = ("SELECT a.project_id, "
-           "  b.o_number, "
-           "  a.project_name, "
-           "  a.project_description "
-           "FROM nivadatabase.projects a, "
-           "  nivadatabase.projects_o_numbers b "
-           "WHERE a.project_id = b.project_id "
-           "ORDER BY a.project_id")
+#    sql = ("SELECT a.project_id, "
+#           "  b.o_number, "
+#           "  a.project_name, "
+#           "  a.project_description "
+#           "FROM nivadatabase.projects a, "
+#           "  nivadatabase.projects_o_numbers b "
+#           "WHERE a.project_id = b.project_id "
+#           "ORDER BY a.project_id")
+    sql = ("SELECT project_id, "
+           "  project_name, "
+           "  project_description "
+           "FROM nivadatabase.projects "
+           "ORDER BY project_id")
     df = pd.read_sql(sql, engine)
 
     # Decode special characters
@@ -43,6 +48,11 @@ def get_all_projects(engine):
 
 def get_all_stations(engine):
     """ Get full list of stations from the NDB.
+    
+        Note: The NIVADATABASE allows multiple names for the same station.
+        This function returns all unique id-code-name-type-lat-lon
+        combinations, which will include duplicated station IDs in some 
+        cases.
     
     Args:
         engine: Obj. Active NDB "engine" object
@@ -74,63 +84,71 @@ def get_all_stations(engine):
 
     return df
 
-def get_station_props(stn_ids, engine):
-    """ Get properties for specified stations from the NDB.
+#def get_station_props(stn_ids, engine):
+#    """ Get properties for specified stations from the NDB.
+#    
+#    Args:
+#        stn_ids: Array-like. 1D integer array of station IDs
+#        engine:  Obj. Active NDB "engine" object
+#        
+#    Returns:
+#        Dataframe
+#    """ 
+#    # Build query
+#    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+#    
+#    # Query db
+#    sql = ("SELECT DISTINCT a.station_id, "
+#           "  a.station_code, "
+#           "  a.station_name, "
+#           "  c.station_type, "
+#           "  d.latitude, "
+#           "  d.longitude "
+#           "FROM nivadatabase.projects_stations a, "
+#           "  nivadatabase.stations b, "
+#           "  nivadatabase.station_types c, "
+#           "  niva_geometry.sample_points d "
+#           "WHERE a.station_id    = b.station_id "
+#           "AND b.station_type_id = c.station_type_id "
+#           "AND b.geom_ref_id     = d.sample_point_id "
+#           "AND a.station_id     IN (%s)" % bind_pars)
+#    df = pd.read_sql(sql, params=stn_ids, con=engine)
+#    
+#    # Station IDs are unique locations, but they can have different names
+#    # in different projects. This code drops duplicated IDs, but chooses
+#    # station name and code at random from among the duplicates
+#    df.drop_duplicates(subset='station_id', inplace=True)
+#
+#    # Decode special characters
+#    for col in df.columns:
+#        if df[col].dtype == object:
+#            df[col] = df[col].str.decode('Latin-1')
+#
+#    return df   
     
-    Args:
-        stn_ids: Array-like. 1D integer array of station IDs
-        engine:  Obj. Active NDB "engine" object
-        
-    Returns:
-        Dataframe
-    """ 
-    # Build query
-    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))
-    
-    # Query db
-    sql = ("SELECT DISTINCT a.station_id AS id, "
-           "  a.station_code AS code, "
-           "  a.station_name AS stn_name, "
-           "  c.station_type AS type, "
-           "  d.latitude AS lat, "
-           "  d.longitude AS lon "
-           "FROM nivadatabase.projects_stations a, "
-           "  nivadatabase.stations b, "
-           "  nivadatabase.station_types c, "
-           "  niva_geometry.sample_points d "
-           "WHERE a.station_id    = b.station_id "
-           "AND b.station_type_id = c.station_type_id "
-           "AND b.geom_ref_id     = d.sample_point_id "
-           "AND a.station_id     IN (%s)" % bind_pars)
-    df = pd.read_sql(sql, params=stn_ids, con=engine)
-    
-    # Station IDs are unique locations, but they can have different names
-    # in different projects. This code drops duplicated IDs, but chooses
-    # station name and code at random from among the duplicates
-    df.drop_duplicates(subset='id', inplace=True)
-
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
-
-    return df   
-    
-def get_project_stations(proj_df, engine):
+def get_project_stations(proj_df, engine, drop_dups=False):
     """ Get stations asscoiated with selected projects.
     
     Args:
-        proj_df: Dataframe. Must have a column named 'id' with
-                 the project IDs of interest
-        engine:  Obj. Active NDB "engine" object
+        proj_df:   Dataframe. Must have a column named 'project_id' with
+                   the project IDs of interest
+        engine:    Obj. Active NDB "engine" object
+        drop_dups: Bool. The same station may have different names in different
+                   projects. If some of the selected projects include the 
+                   same station, this will result in duplicates in the 
+                   stations table (i.e. same station ID, but multiple names).
+                   By default, the duplicates will be returned. Setting
+                   'drop_dups=True' will select one set of names per station
+                   ID and return a dataframe with no duplicates (but the 
+                   station codes and names may not be what you're expecting)
         
     Returns:
         Dataframe
     """       
     # Get proj IDs
     assert len(proj_df) > 0, 'ERROR: Please select at least one project.'
-    proj_df['id'].drop_duplicates(inplace=True)
-    proj_ids = proj_df['id'].values.astype(int)
+    proj_df['project_id'].drop_duplicates(inplace=True)
+    proj_ids = proj_df['project_id'].values.astype(int)
 
     # Query db
     bind_pars = ','.join(':%d' % i for i in xrange(len(proj_ids)))    
@@ -156,10 +174,68 @@ def get_project_stations(proj_df, engine):
            "ORDER BY a.station_id" % bind_pars)
     df = pd.read_sql(sql, params=proj_ids, con=engine)
 
-    # Station IDs are unique locations, but they can have different names
-    # in different projects. This code drops duplicated IDs, but chooses
-    # station name and code at random from among the duplicates
-    df.drop_duplicates(subset='station_id', inplace=True)
+    # Drop duplictaes, if desired
+    if drop_dups:
+        df.drop_duplicates(subset='station_id', inplace=True)
+    
+    # Decode special characters
+    for col in df.columns:
+        if df[col].dtype == object:
+            df[col] = df[col].str.decode('Latin-1')
+                   
+    return df
+
+def get_station_projects(stn_df, proj_df, engine):
+    """ Get projects asscoiated with selected stations.
+    
+    Args:
+        stn_df:  Dataframe. Must have a column named 'station_id' with
+                 the station IDs of interest
+        proj_df: Dataframe. Must have a column named 'project_id' with
+                 the currently selected project IDs of interest
+        engine:  Obj. Active NDB "engine" object
+        
+    Returns:
+        Dataframe
+    """       
+    # Get stn IDs
+    assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
+    stn_df['station_id'].drop_duplicates(inplace=True)
+    stn_ids = stn_df['station_id'].values.astype(int)
+
+    # Get proj IDs
+    assert len(proj_df) > 0, 'ERROR: At least one project must already be selected.'
+    proj_df['project_id'].drop_duplicates(inplace=True)
+    proj_ids = proj_df['project_id'].values.astype(int)  
+
+    # Number from 0 to n_stns
+    bind_stns = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+    
+    # Number from n_stns to (n_stns+n_projs)
+    bind_prjs = ','.join(':%d' % i for i in xrange(len(stn_ids), 
+                                                   len(stn_ids) + len(proj_ids)))
+    
+    # Query db
+    sql = ("SELECT a.project_id, "
+           "  b.o_number, "
+           "  a.project_name, "
+           "  a.project_description "
+           "FROM nivadatabase.projects a, "
+           "  nivadatabase.projects_o_numbers b "
+           "WHERE a.project_id = b.project_id "
+           "AND a.project_id  IN "
+           "  (SELECT project_id "
+           "  FROM nivadatabase.projects_stations "
+           "  WHERE station_id IN (%s) "
+           "  AND project_id   IN (%s) "
+           "  ) "
+           "ORDER BY a.project_id" % (bind_stns, bind_prjs))
+
+    bind_dict = {'%d' % idx:item for idx, item in enumerate(stn_ids)}
+    bind_prj_dict = {'%d' % (idx + len(stn_ids)):item 
+                     for idx, item in enumerate(proj_ids)}
+    bind_dict.update(bind_prj_dict) 
+    df = pd.read_sql(sql, params=bind_dict, con=engine)
     
     # Decode special characters
     for col in df.columns:
@@ -237,10 +313,10 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
         of PL/SQL into Python.
 
     Args:
-        stn_df: Dataframe. Must have a column named 'id' with
+        stn_df: Dataframe. Must have a column named 'station_id' with
                 the station IDs of interest
-        st_dt: Str. Format 'YYYY-MM-DD'
-        end_dt:   Str. Format 'YYYY-MM-DD'
+        st_dt:  Str. Format 'YYYY-MM-DD'
+        end_dt: Str. Format 'YYYY-MM-DD'
         engine: Obj. Active NDB "engine" object
         
     Returns:
@@ -248,8 +324,8 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
     """ 
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
-    stn_df['id'].drop_duplicates(inplace=True)
-    stn_ids = stn_df['id'].values.astype(int)
+    stn_df['station_id'].drop_duplicates(inplace=True)
+    stn_ids = stn_df['station_id'].values.astype(int)
 
     # Convert dates
     st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
@@ -447,8 +523,8 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
 #    
 #    return (df, dup_df)
 
-def get_chemistry_values2(stn_df, par_df, st_dt,
-                          end_dt, lod_flags, engine):
+def get_chemistry_values2(stn_df, par_df, st_dt, end_dt, 
+                          lod_flags, engine, drop_dups=False):
     """ Get water chemistry data for selected station-parameter-
         date combinations. 
         
@@ -467,30 +543,32 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
         than to refactor lots of PL/SQL into Python.
         
     Args:
-        stn_df:    Dataframe. Must have a column named 'stns' with
+        stn_df:    Dataframe. Must have a column named 'station_id' with
                    the station IDs of interest 
-        par_df:    Dataframe. Must have a column named 'pars' with
+        par_df:    Dataframe. Must have a column named 'parameter_id' with
                    the parameter IDs of interest
         st_dt:     Str. Format 'YYYY-MM-DD'
         end_dt:    Str. Format 'YYYY-MM-DD'
         lod_flags: Bool. Whether to include LOD flags in output
         engine:    Obj. Active NDB "engine" object
+        drop_dups: Bool. Whether to retain duplicated rows in cases where
+                   the same station ID is present with multiple names
         
     Returns:
         Tuple of dataframes (wc_df, dup_df)   
     """
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
-    stn_df['stns'].drop_duplicates(inplace=True)
-    stn_ids = stn_df['stns'].values.astype(int)
+    stn_df['station_id'].drop_duplicates(inplace=True)
+    stn_ids = stn_df['station_id'].values.astype(int)
     
     # Get stn properties
-    stn_props = get_station_props(stn_ids, engine)
+    #stn_props = get_station_props(stn_ids, engine)
 
     # Get par IDs
     assert len(par_df) > 0, 'ERROR: Please select at least one parameter.'
-    par_df['pars'].drop_duplicates(inplace=True)
-    par_ids = par_df['pars'].values.astype(int)
+    par_df['parameter_id'].drop_duplicates(inplace=True)
+    par_ids = par_df['parameter_id'].values.astype(int)
 
     # Convert dates
     st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
@@ -504,13 +582,13 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
                                                    len(stn_ids) + len(par_ids)))
 
     # Query db
-    sql = ("SELECT a.station_id AS id, "
-           "  a.station_code AS code, "
-           "  a.station_name AS stn_name, "
-           "  b.sample_date AS samp_date, "
+    sql = ("SELECT a.station_id, "
+           "  a.station_code, "
+           "  a.station_name, "
+           "  b.sample_date, "
            "  b.depth1, " 
            "  b.depth2, "
-           "  b.name, "
+           "  b.name AS parameter_name, "
            "  b.unit, "
            "  b.flag1, "
            "  b.value, "
@@ -538,56 +616,75 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
             df[col] = df[col].str.decode('Latin-1')
 
     # Drop exact duplicates (i.e. including value)
-    df.drop_duplicates(subset=['id',
-                               'samp_date',
+    df.drop_duplicates(subset=['station_id',
+                               'station_code',
+                               'station_name',
+                               'sample_date',
                                'depth1',
                                'depth2',
-                               'name',
+                               'parameter_name',
                                'unit',
                                'flag1',
                                'value'], inplace=True)
 
-    # Check for duplicates
-    dup_df = df[df.duplicated(subset=['id',
-                                      'samp_date',
+    # Check for "problem" duplicates i.e. duplication NOT caused by having
+    # several names for the same station
+    dup_df = df[df.duplicated(subset=['station_id',
+                                      'station_code',
+                                      'station_name',
+                                      'sample_date',
                                       'depth1',
                                       'depth2',
-                                      'name',
+                                      'parameter_name',
                                       'unit'], 
-                              keep=False)].sort_values(by=['id',
-                                                           'samp_date',
+                              keep=False)].sort_values(by=['station_id',
+                                                           'station_code',
+                                                           'station_name',
+                                                           'sample_date',
                                                            'depth1',
                                                            'depth2',
-                                                           'name',
+                                                           'parameter_name',
                                                            'unit',
                                                            'entered_date']) 
 
     if len(dup_df) > 0:
-        print ('WARNING\nThe database contains duplicated values for some station-'
-               'date-parameter combinations.\nOnly the most recent values '
-               'will be used, but you should check the repeated values are not '
-               'errors.\nThe duplicated entries are returned in a separate '
+        print ('WARNING\nThe database contains unexpected duplicates values for '
+               'some station-date-parameter combinations.\nOnly the most recent '
+               'values will be used, but you should check the repeated values are '
+               'not errors.\nThe duplicated entries are returned in a separate '
                'dataframe.\n')
 
         # Choose most recent record for each duplicate
         df.sort_values(by='entered_date', inplace=True, ascending=True)
         
         # Drop duplicates
-        df.drop_duplicates(subset=['id',
-                                   'samp_date',
+        df.drop_duplicates(subset=['station_id',
+                                   'station_code',
+                                   'station_name',
+                                   'sample_date',
                                    'depth1',
                                    'depth2',
-                                   'name',
+                                   'parameter_name',
                                    'unit'],
                            keep='last', inplace=True)
         
+    # Drop "expected" duplicates (i.e. duplicated station names), if desired
+    if drop_dups:
+        df.drop_duplicates(subset=['station_id',
+                                   'sample_date',
+                                   'depth1',
+                                   'depth2',
+                                   'parameter_name',
+                                   'unit'],
+                           keep='last', inplace=True)        
+        
     # Restructure data
     del df['entered_date']
-    df['name'].fillna('', inplace=True)
+    df['parameter_name'].fillna('', inplace=True)
     df['unit'].fillna('', inplace=True)
-    df['par_unit'] = (df['name'].astype(unicode) + '_' +
+    df['par_unit'] = (df['parameter_name'].astype(unicode) + '_' +
                       df['unit'].astype(unicode))
-    del df['name'], df['unit']
+    del df['parameter_name'], df['unit']
 
     # Include LOD flags?
     if lod_flags:
@@ -599,10 +696,10 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
         del df['flag1']
 
     # Unstack   
-    df.set_index(['id', 
-                  'code',
-                  'stn_name',
-                  'samp_date',
+    df.set_index(['station_id', 
+                  'station_code',
+                  'station_name',
+                  'sample_date',
                   'depth1',
                   'depth2', 
                   'par_unit'], 
@@ -614,7 +711,7 @@ def get_chemistry_values2(stn_df, par_df, st_dt,
     df.index.name = ''
     df.columns = (list(df.columns.get_level_values(0)[:6]) + 
                   list(df.columns.get_level_values(1)[6:]))
-    df.sort_values(by=['id', 'samp_date'],
+    df.sort_values(by=['station_id', 'sample_date'],
                    inplace=True)   
     
     return (df, dup_df)
