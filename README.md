@@ -46,9 +46,9 @@ Once you've created a clean environment, activate it (using e.g. `activate ndbvi
     
 #### 2.1.3. Run the application
 
-The app can be run either directly from the Anaconda command line or via a Power Shell terminal in Jupyter Lab. The latter is more convenient for development. First, `cd` into the folder containing `ndbview.py`, then run:
+The app can be run either directly from the Anaconda command line or via a Power Shell terminal in Jupyter Lab. The latter is more convenient for development. First, `cd` into the folder containing `setup.py`, then run:
 
-    $env:FLASK_APP="ndbview.py"
+    $env:FLASK_APP="ndbview"
     $env:FLASK_DEBUG=1
     flask run
     
@@ -56,7 +56,7 @@ You should then be able to visit [`http://127.0.0.1:5000/`](http://127.0.0.1:500
 
 **Note:** If you choose to run from the Anaconda command line, the syntax for the code above is slightly different:
 
-    set FLASK_APP=ndbview.py
+    set FLASK_APP=ndbview
     set FLASK_DEBUG=1
     flask run
 
