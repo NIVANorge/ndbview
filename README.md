@@ -2,7 +2,31 @@
 
 Backend Flask "end points" for a RESA2 interim replacement app.
 
-## 1. Background
+## 1. Quick start
+
+  1. Create a clean Python 3.6 environment. If they are not already included by default, install `'pip'` and [`'setuptools'`](https://pypi.python.org/pypi/setuptools) (but these will be included in most cases, such as when creating environments with `'venv'` or `'virtualenv'`).
+  
+  2. Clone this repository, `cd` into the folder containing `setup.py`, and run
+  
+          python setup.py install
+      
+  3. In the same folder, set the envirnment variables for the app
+  
+          set FLASK_APP=ndbview
+          set FLASK_DEBUG=1
+          
+     **Note:** On Linux the syntax will be slightly different. Probably
+     
+          $env:FLASK_APP="ndbview"
+          $env:FLASK_DEBUG=1
+         
+  4. Start the app using 
+  
+          flask run
+
+  5. Test the endpoints using e.g. [Postman](https://www.getpostman.com/)      
+
+## 2. Background
 
 RESA2 is becoming difficult to maintain. We have therefore agreed to create a new application as a temporary replacement that will:
 
@@ -12,13 +36,13 @@ RESA2 is becoming difficult to maintain. We have therefore agreed to create a ne
  
 Akos has already developed some code for the frontend. This repository provides the backend "end points" required to query the NIVADATABASE in a similar way to RESA2.
 
-## 2. Installing
+## 3. Installing
 
 The new NIVA software stack takes a modular approach. The notes in this section provide a basic introduction to developing "containerised" solutions.
 
-### 2.1. Installing for development
+### 3.1. Installing for development
 
-#### 2.1.1. Create an environment
+#### 3.1.1. Create an environment
 
 Creating a new Python environment for each "app" project gives full control over package versions etc., which will avoid conflicts later. It also makes it easier to deploy the finished app using e.g. docker.
 
@@ -38,13 +62,13 @@ then:
     conda install -c conda-forge jupyterlab
     jupyter labextension install @jupyterlab/geojson-extension
 
-#### 2.1.2. Install the application
+#### 3.1.2. Install the application
 
 Once you've created a clean environment, activate it (using e.g. `activate ndbview` on Anaconda), then clone the repository, `cd` into the folder containing `setup.py` and run:
 
     python setup.py install
     
-#### 2.1.3. Run the application
+#### 3.1.3. Run the application
 
 The app can be run either directly from the Anaconda command line or via a Power Shell terminal in Jupyter Lab. The latter is more convenient for development. First, `cd` into the folder containing `setup.py`, then run:
 
@@ -60,27 +84,27 @@ You should then be able to visit [`http://127.0.0.1:5000/`](http://127.0.0.1:500
     set FLASK_DEBUG=1
     flask run
 
-#### 2.1.4. Test the application
+#### 3.1.4. Test the application
 
 The Flask end points in `ndbview.py` are just "decorated" Python functions, designed to accept POSTed JSON containing the required function arguments and to return JSON to the frontend application. Once the Flask application is running, the easiest way to test the functions is by using "[Postman](https://www.getpostman.com/)" to send raw JSON to the end point and check that the returned JSON looks reasonable - see red highlighting on the image below.
 
 <img src="images\postman_example.png" alt="Postman example" width="600"/>
 
-#### 2.1.5. Deleting the development environment
+#### 3.1.5. Deleting the development environment
 
 On Anaconda, the development environment can be removed using:
 
     conda remove --name ndbview --all
 
-### 2.2. Installing for deployment
+### 3.2. Installing for deployment
 
 "Containerised" deployment is achieved using [Docker](https://www.docker.com/). The instructions below describe installing and building locally, but ultimately we need to deploy to Google Cloud Platform. Grunde has some initial instructions for this [here](https://github.com/NIVANorge/flask_example#kubernetes-deployment).
 
-#### 2.2.1. Install Docker locally
+#### 3.2.1. Install Docker locally
 
 Download and install Docker Community Edition (Edge) from [here](https://store.docker.com/editions/community/docker-ce-desktop-windows). Use the default options (which may involve restarting your computer).
 
-#### 2.2.2. Create a Docker image and install the app
+#### 3.2.2. Create a Docker image and install the app
 
 The settings for a Docker image are specified in a plain text file called a `Dockerfile` (with no file extension). An example can be found [here](https://github.com/NIVANorge/ndbview/blob/master/Dockerfile). 
 
@@ -90,7 +114,7 @@ This file should be placed at the same level in the folder structure as the app'
 
 (Where the `.` at the end means "*look for a Dockerfile in the current directory*").
 
-#### 2.2.3. Launch the app from Docker
+#### 3.2.3. Launch the app from Docker
 
 This section summarises some useful Docker commands (all of which can be run from the Jupyter Lab Power Shell).
 
