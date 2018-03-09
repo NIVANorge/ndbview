@@ -16,7 +16,7 @@
 """
 import os
 import pandas as pd
-import ndb_queries
+from ndbview import ndb_queries
 import cx_Oracle
 from sqlalchemy import create_engine
 from flask import Flask, request, session, g, redirect, jsonify
@@ -49,6 +49,10 @@ def connect_ndb():
     Returns:
         SQLAlchemy engine object.
     """
+    # Deal with encodings
+    os.environ['NLS_LANG'] = ".AL32UTF8"
+
+    # Connect
     conn_str = app.config['DATABASE'] % (app.config['USERNAME'],
                                          app.config['PASSWORD']) 
     engine = create_engine(conn_str)

@@ -39,11 +39,6 @@ def get_all_projects(engine):
            "ORDER BY project_id")
     df = pd.read_sql(sql, engine)
 
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
-
     return df
 
 def get_all_stations(engine):
@@ -77,11 +72,6 @@ def get_all_stations(engine):
            "ORDER BY a.station_id")
     df = pd.read_sql(sql, engine)
 
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
-
     return df
 
 #def get_station_props(stn_ids, engine):
@@ -95,7 +85,7 @@ def get_all_stations(engine):
 #        Dataframe
 #    """ 
 #    # Build query
-#    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+#    bind_pars = ','.join(':%d' % i for i in range(len(stn_ids)))
 #    
 #    # Query db
 #    sql = ("SELECT DISTINCT a.station_id, "
@@ -148,10 +138,10 @@ def get_project_stations(proj_df, engine, drop_dups=False):
     # Get proj IDs
     assert len(proj_df) > 0, 'ERROR: Please select at least one project.'
     proj_df['project_id'].drop_duplicates(inplace=True)
-    proj_ids = proj_df['project_id'].values.astype(int)
+    proj_ids = proj_df['project_id'].values.astype(int).tolist()
 
     # Query db
-    bind_pars = ','.join(':%d' % i for i in xrange(len(proj_ids)))    
+    bind_pars = ','.join(':%d' % i for i in range(len(proj_ids)))    
 
     sql = ("SELECT DISTINCT a.station_id, "
            "  a.station_code, "
@@ -177,12 +167,7 @@ def get_project_stations(proj_df, engine, drop_dups=False):
     # Drop duplictaes, if desired
     if drop_dups:
         df.drop_duplicates(subset='station_id', inplace=True)
-    
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
-                   
+                       
     return df
 
 def get_station_projects(stn_df, proj_df, engine):
@@ -201,18 +186,18 @@ def get_station_projects(stn_df, proj_df, engine):
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
     stn_df['station_id'].drop_duplicates(inplace=True)
-    stn_ids = stn_df['station_id'].values.astype(int)
+    stn_ids = stn_df['station_id'].values.astype(int).tolist()
 
     # Get proj IDs
     assert len(proj_df) > 0, 'ERROR: At least one project must already be selected.'
     proj_df['project_id'].drop_duplicates(inplace=True)
-    proj_ids = proj_df['project_id'].values.astype(int)  
+    proj_ids = proj_df['project_id'].values.astype(int).tolist()  
 
     # Number from 0 to n_stns
-    bind_stns = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+    bind_stns = ','.join(':%d' % i for i in range(len(stn_ids)))
     
     # Number from n_stns to (n_stns+n_projs)
-    bind_prjs = ','.join(':%d' % i for i in xrange(len(stn_ids), 
+    bind_prjs = ','.join(':%d' % i for i in range(len(stn_ids), 
                                                    len(stn_ids) + len(proj_ids)))
     
     # Query db
@@ -236,12 +221,7 @@ def get_station_projects(stn_df, proj_df, engine):
                      for idx, item in enumerate(proj_ids)}
     bind_dict.update(bind_prj_dict) 
     df = pd.read_sql(sql, params=bind_dict, con=engine)
-    
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
-                   
+                       
     return df
 
 #def get_station_parameters(stn_df, st_dt, end_dt, engine):
@@ -259,14 +239,14 @@ def get_station_projects(stn_df, proj_df, engine):
 #    # Get stn IDs
 #    assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
 #    stn_df['station_id'].drop_duplicates(inplace=True)
-#    stn_ids = stn_df['station_id'].values.astype(int)
+#    stn_ids = stn_df['station_id'].values.astype(int).tolist()
 #
 #    # Convert dates
 #    st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
 #    end_dt = dt.datetime.strptime(end_dt, '%Y-%m-%d')
 #    
 #    # Query db
-#    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+#    bind_pars = ','.join(':%d' % i for i in range(len(stn_ids)))
 #    
 #    sql = ("SELECT parameter_id, "
 #           "  name AS parameter_name, "
@@ -325,16 +305,16 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
     stn_df['station_id'].drop_duplicates(inplace=True)
-    stn_ids = stn_df['station_id'].values.astype(int)
+    stn_ids = stn_df['station_id'].values.astype(int).tolist()
 
     # Convert dates
     st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
     end_dt = dt.datetime.strptime(end_dt, '%Y-%m-%d')
     
     # Query db
-    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))    
+    bind_pars = ','.join(':%d' % i for i in range(len(stn_ids)))    
 
-    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+    bind_pars = ','.join(':%d' % i for i in range(len(stn_ids)))
     sql = ("SELECT DISTINCT parameter_id, "
            "  name AS parameter_name, "
            "  unit "
@@ -350,11 +330,6 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
     bind_dict = {'%d' % idx:item for idx, item in enumerate(stn_ids)}
     par_dict.update(bind_dict)    
     df = pd.read_sql(sql, params=par_dict, con=engine)    
-    
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
             
     return df
 
@@ -379,7 +354,7 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
 #    # Get stn IDs
 #    assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
 #    stn_df['station_id'].drop_duplicates(inplace=True)
-#    stn_ids = stn_df['station_id'].values.astype(int)
+#    stn_ids = stn_df['station_id'].values.astype(int).tolist()
 #    
 #    # Get stn properties
 #    stn_props = get_station_props(stn_ids, engine)
@@ -387,18 +362,18 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
 #    # Get par IDs
 #    assert len(par_df) > 0, 'ERROR: Please select at least one parameter.'
 #    par_df['parameter_id'].drop_duplicates(inplace=True)
-#    par_ids = par_df['parameter_id'].values.astype(int)
+#    par_ids = par_df['parameter_id'].values.astype(int).tolist()
 #
 #    # Convert dates
 #    st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
 #    end_dt = dt.datetime.strptime(end_dt, '%Y-%m-%d')
 #
 #    # Number from 0 to n_stns
-#    bind_stns = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+#    bind_stns = ','.join(':%d' % i for i in range(len(stn_ids)))
 #    
 #    # Number from n_stns to (n_stns+n_params)
 #    bind_pars = ','.join(':%d' % i for i in
-#                         xrange(len(stn_ids), len(stn_ids)+len(par_ids)))
+#                         range(len(stn_ids), len(stn_ids)+len(par_ids)))
 #
 #    # Query db
 #    sql = ("SELECT a.station_id AS id, "
@@ -485,14 +460,14 @@ def get_station_parameters2(stn_df, st_dt, end_dt, engine):
 #    del df['entered_date']
 #    df['name'].fillna('', inplace=True)
 #    df['unit'].fillna('', inplace=True)
-#    df['par_unit'] = (df['name'].astype(unicode) + '_' +
-#                      df['unit'].astype(unicode))
+#    df['par_unit'] = (df['name'].astype(str) + '_' +
+#                      df['unit'].astype(str))
 #    del df['name'], df['unit']
 #
 #    # Include LOD flags?
 #    if lod_flags:
 #        df['flag1'].fillna('', inplace=True)
-#        df['value'] = df['flag1'].astype(unicode) + df['value'].astype(unicode)
+#        df['value'] = df['flag1'].astype(str) + df['value'].astype(str)
 #        del df['flag1']
 #        
 #    else: # Ignore flags
@@ -560,7 +535,7 @@ def get_chemistry_values2(stn_df, par_df, st_dt, end_dt,
     # Get stn IDs
     assert len(stn_df) > 0, 'ERROR: Please select at least one station.'
     stn_df['station_id'].drop_duplicates(inplace=True)
-    stn_ids = stn_df['station_id'].values.astype(int)
+    stn_ids = stn_df['station_id'].values.astype(int).tolist()
     
     # Get stn properties
     #stn_props = get_station_props(stn_ids, engine)
@@ -568,18 +543,18 @@ def get_chemistry_values2(stn_df, par_df, st_dt, end_dt,
     # Get par IDs
     assert len(par_df) > 0, 'ERROR: Please select at least one parameter.'
     par_df['parameter_id'].drop_duplicates(inplace=True)
-    par_ids = par_df['parameter_id'].values.astype(int)
+    par_ids = par_df['parameter_id'].values.astype(int).tolist()
 
     # Convert dates
     st_dt = dt.datetime.strptime(st_dt, '%Y-%m-%d')
     end_dt = dt.datetime.strptime(end_dt, '%Y-%m-%d')
        
     # Number from 0 to n_stns
-    bind_stns = ','.join(':%d' % i for i in xrange(len(stn_ids)))
+    bind_stns = ','.join(':%d' % i for i in range(len(stn_ids)))
     
     # Number from n_stns to (n_stns+n_params)
-    bind_pars = ','.join(':%d' % i for i in xrange(len(stn_ids), 
-                                                   len(stn_ids) + len(par_ids)))
+    bind_pars = ','.join(':%d' % i for i in range(len(stn_ids), 
+                                                  len(stn_ids) + len(par_ids)))
 
     # Query db
     sql = ("SELECT a.station_id, "
@@ -609,11 +584,6 @@ def get_chemistry_values2(stn_df, par_df, st_dt, end_dt,
     par_dict.update(bind_stn_dict)
     par_dict.update(bind_par_dict)    
     df = pd.read_sql(sql, params=par_dict, con=engine)
-
-    # Decode special characters
-    for col in df.columns:
-        if df[col].dtype == object:
-            df[col] = df[col].str.decode('Latin-1')
 
     # Drop exact duplicates (i.e. including value)
     df.drop_duplicates(subset=['station_id',
@@ -682,14 +652,14 @@ def get_chemistry_values2(stn_df, par_df, st_dt, end_dt,
     del df['entered_date']
     df['parameter_name'].fillna('', inplace=True)
     df['unit'].fillna('', inplace=True)
-    df['par_unit'] = (df['parameter_name'].astype(unicode) + '_' +
-                      df['unit'].astype(unicode))
+    df['par_unit'] = (df['parameter_name'].astype(str) + '_' +
+                      df['unit'].astype(str))
     del df['parameter_name'], df['unit']
 
     # Include LOD flags?
     if lod_flags:
         df['flag1'].fillna('', inplace=True)
-        df['value'] = df['flag1'].astype(unicode) + df['value'].astype(unicode)
+        df['value'] = df['flag1'].astype(str) + df['value'].astype(str)
         del df['flag1']
         
     else: # Ignore flags
