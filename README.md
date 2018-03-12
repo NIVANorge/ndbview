@@ -10,7 +10,7 @@ Backend Flask "end points" for a RESA2 interim replacement app.
   
           python setup.py install
       
-  3. In the same folder, set the envirnment variables for the app
+  3. In the same folder, set the environment variables for the app
   
           set FLASK_APP=ndbview
           set FLASK_DEBUG=1
